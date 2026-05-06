@@ -1,6 +1,6 @@
 # Logos
 
-**The Hypernote's coding assistant** — a local, model-agnostic coding stack for Apple Silicon, built on [Ollama](https://ollama.com) and [Open WebUI](https://github.com/open-webui/open-webui).
+**The Hypernote's coding assistant** — a local, model-agnostic coding stack for Apple Silicon and Linux, built on [Ollama](https://ollama.com) and [Open WebUI](https://github.com/open-webui/open-webui).
 
 One command to start everything:
 
@@ -9,6 +9,8 @@ docker compose up -d
 ```
 
 A terminal interface that feels like working with a senior engineer, running entirely on your machine. No cloud. No API keys. No data leaving your device. No monthly subscription to cancel and forget about.
+
+> Runs on macOS and Linux. Windows support is not planned. You know why.
 
 ---
 
@@ -37,7 +39,8 @@ A terminal interface that feels like working with a senior engineer, running ent
 
 ## Requirements
 
-- Docker Desktop (Apple Silicon)
+- macOS (Apple Silicon) or Linux
+- Docker Desktop (macOS) or Docker Engine (Linux)
 - Python 3.9+
 - ~4–15 GB free disk per model (clean up those node_modules first)
 
@@ -92,13 +95,18 @@ http://localhost:3000
 ./install.sh
 ```
 
-Supports macOS and Linux. Works without `sudo` because we're not animals.
+Auto-detects macOS and Linux. Picks the right shell rc file (`.zshrc`, `.bash_profile`, `.bashrc` — whatever you're running). Works without `sudo` because we're not animals.
 
-If needed, add to your shell:
+If `~/.local/bin` isn't in your PATH yet, the installer will tell you exactly what to run. It's one line. You can handle it.
 
+**macOS:**
 ```bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+```
+
+**Linux:**
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
 ```
 
 ### 6. Start the terminal interface
