@@ -1,8 +1,30 @@
 #!/bin/bash
 # logos — terminal coding assistant backed by local Ollama
 
-# Resolve through symlinks to find the real script location
-REAL_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}")"
+# Resolve symlinks portably across macOS and Linux
+_resolve() {
+  local target="$1"
+  if command -v realpath &>/dev/null; then
+    realpath "$target"
+  elif command -v readlink &>/dev/null; then
+    # macOS readlink does not support -f without coreutils; follow manually
+    local dir file
+    dir="$(cd "$(dirname "$target")" && pwd -P)"
+    file="$(basename "$target")"
+    local link
+    while link="$(readlink "$dir/$file" 2>/dev/null)"; do
+      case "$link" in
+        /*) dir="$(dirname "$link")"; file="$(basename "$link")" ;;
+        *)  dir="$(cd "$dir" && cd "$(dirname "$link")" && pwd -P)"; file="$(basename "$link")" ;;
+      esac
+    done
+    echo "$dir/$file"
+  else
+    python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "$target"
+  fi
+}
+
+REAL_SCRIPT="$(_resolve "${BASH_SOURCE[0]}")"
 SCRIPT_DIR="$(cd "$(dirname "$REAL_SCRIPT")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 ENV_FILE="$PROJECT_DIR/.env"
@@ -14,21 +36,28 @@ if [[ -f "$ENV_FILE" ]]; then
   set +a
 fi
 
-MODEL="${MODEL:-gemma3:7b}"
+MODEL="${MODEL:-gemma3:4b}"
 OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://localhost:11434}"
 
-# Check python3 is available
+# Detect OS for any platform-specific behaviour
+OS="$(uname -s)"
+
+# Check python3
 if ! command -v python3 &>/dev/null; then
-  echo "ERROR: python3 is required. Install via: brew install python"
+  echo "ERROR: python3 is required."
+  case "$OS" in
+    Darwin) echo "Install with: brew install python" ;;
+    Linux)  echo "Install with: sudo apt install python3" ;;
+  esac
   exit 1
 fi
 
-# Install deps if needed
+# Set up virtualenv if missing
 VENV="$PROJECT_DIR/.venv"
 if [[ ! -d "$VENV" ]]; then
   echo "Setting up Logos environment..."
   python3 -m venv "$VENV"
-  "$VENV/bin/pip" install -q requests rich prompt_toolkit
+  "$VENV/bin/pip" install -q -r "$PROJECT_DIR/requirements.txt"
 fi
 
 exec "$VENV/bin/python" "$PROJECT_DIR/logos_cli/main.py" \
