@@ -1,0 +1,38 @@
+#!/bin/bash
+# logos — terminal coding assistant backed by local Ollama
+
+# Resolve through symlinks to find the real script location
+REAL_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || python3 -c "import os,sys; print(os.path.realpath(sys.argv[1]))" "${BASH_SOURCE[0]}")"
+SCRIPT_DIR="$(cd "$(dirname "$REAL_SCRIPT")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+ENV_FILE="$PROJECT_DIR/.env"
+
+# Load .env
+if [[ -f "$ENV_FILE" ]]; then
+  set -a
+  source "$ENV_FILE"
+  set +a
+fi
+
+MODEL="${MODEL:-gemma3:7b}"
+OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://localhost:11434}"
+
+# Check python3 is available
+if ! command -v python3 &>/dev/null; then
+  echo "ERROR: python3 is required. Install via: brew install python"
+  exit 1
+fi
+
+# Install deps if needed
+VENV="$PROJECT_DIR/.venv"
+if [[ ! -d "$VENV" ]]; then
+  echo "Setting up Logos environment..."
+  python3 -m venv "$VENV"
+  "$VENV/bin/pip" install -q requests rich prompt_toolkit
+fi
+
+exec "$VENV/bin/python" "$PROJECT_DIR/logos_cli/main.py" \
+  --model "$MODEL" \
+  --ollama-url "$OLLAMA_BASE_URL" \
+  --profiles-dir "$PROJECT_DIR/profiles" \
+  "$@"

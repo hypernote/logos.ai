@@ -1,0 +1,42 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    platform: linux/arm64
+    container_name: logos-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+      - ./ollama/entrypoint.sh:/entrypoint.sh:ro
+    environment:
+      - MODEL=${MODEL:-gemma3:4b}
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 300s
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    platform: linux/arm64
+    container_name: logos-webui
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_AUTH=false
+      - DEFAULT_MODELS=${MODEL:-gemma3:4b}
+      - WEBUI_NAME=Logos
+    depends_on:
+      ollama:
+        condition: service_healthy
+    volumes:
+      - webui_data:/app/backend/data
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+  webui_data:
